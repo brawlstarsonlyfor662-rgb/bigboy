@@ -109,6 +109,7 @@ function App() {
               <Route path="/analytics" element={user ? <Analytics /> : <Navigate to="/" />} />
               <Route path="/profile" element={user ? <Profile /> : <Navigate to="/" />} />
               <Route path="/ai-study" element={user ? <AIStudyAssistant /> : <Navigate to="/" />} />
+              <Route path="/quests" element={user ? <QuestsHub /> : <Navigate to="/" />} />
               <Route path="/quests/daily" element={user ? <DailyQuests /> : <Navigate to="/" />} />
               <Route path="/quests/weekly" element={user ? <WeeklyQuests /> : <Navigate to="/" />} />
               {/* Hidden admin route */}
