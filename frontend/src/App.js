@@ -24,6 +24,11 @@ import QuestsHub from './pages/QuestsHub';
 import Leaderboard from './pages/Leaderboard';
 import AdminQuestManager from './pages/AdminQuestManager';
 import BackgroundCustomizer from './pages/BackgroundCustomizer';
+import AIStrategist from './pages/AIStrategist';
+import IdentityTransform from './pages/IdentityTransform';
+import WorldImpact from './pages/WorldImpact';
+import FounderMode from './pages/FounderMode';
+import PsychologyDashboard from './pages/PsychologyDashboard';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
