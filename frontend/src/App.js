@@ -121,7 +121,10 @@ function App() {
               <Route path="/quests/daily" element={user ? <DailyQuests /> : <Navigate to="/" />} />
               <Route path="/quests/weekly" element={user ? <WeeklyQuests /> : <Navigate to="/" />} />
               <Route path="/leaderboard" element={user ? <Leaderboard /> : <Navigate to="/" />} />
-              <Route path="/admin/quests" element={user ? <AdminQuestManager /> : <Navigate to="/" />} />
+              <Route
+                path="/admin/quests"
+                element={(user || sessionStorage.getItem('admin_token')) ? <AdminQuestManager /> : <Navigate to="/" />}
+              />
               <Route path="/settings/background" element={user ? <BackgroundCustomizer /> : <Navigate to="/" />} />
               <Route path="/strategist" element={user ? <AIStrategist /> : <Navigate to="/" />} />
               <Route path="/identity" element={user ? <IdentityTransform /> : <Navigate to="/" />} />
