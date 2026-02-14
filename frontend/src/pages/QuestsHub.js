@@ -27,17 +27,21 @@ const QuestsHub = () => {
   const fetchAllQuests = async () => {
     setLoading(true);
     try {
-      const [daily, weekly, monthly, micro] = await Promise.all([
+      const [daily, weekly, monthly, micro, global, beginner] = await Promise.all([
         axios.get('/quests/daily'),
         axios.get('/quests/weekly'),
         axios.get('/quests/monthly'),
-        axios.get('/quests/micro')
+        axios.get('/quests/micro'),
+        axios.get('/quests/global'),
+        user?.level < 5 ? axios.get('/quests/beginner') : Promise.resolve({ data: { quests: [] } })
       ]);
 
       setDailyQuests(daily.data.quests || []);
       setWeeklyQuests(weekly.data.quests || []);
       setMonthlyQuests(monthly.data.quests || []);
       setMicroQuests(micro.data.quests || []);
+      setGlobalQuests(global.data.quests || []);
+      setBeginnerQuests(beginner.data.quests || []);
     } catch (error) {
       toast.error('Failed to load quests');
       console.error(error);
