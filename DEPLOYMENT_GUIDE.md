@@ -6,7 +6,7 @@ Your full-stack JavaScript productivity application is now live with **fully fun
 
 ## 🚀 Accessing Your Application
 
-**Preview URL**: https://spa-router-fix.preview.emergentagent.com
+**Preview URL**: https://quest-dashboard-4.preview.emergentagent.com
 
 All routes now work correctly, including:
 - `/` - Landing page
@@ -68,7 +68,7 @@ EMERGENT_LLM_KEY=sk-emergent-universal-key-placeholder
 
 ### Frontend `.env` (/app/frontend/.env)
 ```
-REACT_APP_BACKEND_URL=https://spa-router-fix.preview.emergentagent.com
+REACT_APP_BACKEND_URL=https://quest-dashboard-4.preview.emergentagent.com
 WDS_SOCKET_PORT=443
 ENABLE_HEALTH_CHECK=false
 ```

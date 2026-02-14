@@ -1,7 +1,7 @@
 # Quick Reference - SPA Deployment
 
 ## 🚀 Your App is Live!
-**URL**: https://spa-router-fix.preview.emergentagent.com
+**URL**: https://quest-dashboard-4.preview.emergentagent.com
 
 ## ✅ What Was Fixed
 - ✅ All SPA routes now work (no more 404 errors)
