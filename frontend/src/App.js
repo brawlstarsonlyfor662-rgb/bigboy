@@ -21,6 +21,8 @@ import AIStudyAssistant from './pages/AIStudyAssistant';
 import DailyQuests from './pages/DailyQuests';
 import WeeklyQuests from './pages/WeeklyQuests';
 import QuestsHub from './pages/QuestsHub';
+import Leaderboard from './pages/Leaderboard';
+import AdminQuestManager from './pages/AdminQuestManager';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
