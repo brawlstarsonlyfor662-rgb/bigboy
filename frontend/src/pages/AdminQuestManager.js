@@ -61,7 +61,11 @@ const AdminQuestManager = () => {
     
     try {
       if (editingQuest) {
-        await axios.put(`/api/admin/quests/global/${editingQuest.id}`, formData);
+        await axios.put(`/api/admin/quests/global/${editingQuest.id}`, formData, {
+          headers: {
+            Authorization: `Bearer ${sessionStorage.getItem('admin_token') || localStorage.getItem('token')}`
+          }
+        });
         toast.success('Quest updated successfully!');
       } else {
         await axios.post('/api/admin/quests/global', formData);
