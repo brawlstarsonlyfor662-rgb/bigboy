@@ -872,17 +872,20 @@ fastify.get('/api/quests/daily', { preHandler: [fastify.authenticate] }, async (
       userId: user.id,
       date: today,
       title: template.title,
+      description: template.description || '',
       xpReward: template.xpReward,
       target: template.target,
       progress: 0,
       completed: false,
-      type: template.type
+      type: template.type,
+      difficulty: template.difficulty || 'medium',
+      category: template.category || 'productivity'
     };
     await db.collection('daily_quests').insertOne(quest);
     quests.push({ ...quest, user_id: quest.userId, xp_reward: quest.xpReward });
   }
   
-  return { quests, date: today, extra_quests: extraQuests };
+  return { quests, date: today, extra_quests: extraQuests, ai_generated: questTemplates !== getDailyQuestTemplates(user.level) };
 });
 
 // Weekly Quests
