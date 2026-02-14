@@ -224,28 +224,28 @@
 
 ## frontend:
 ##   - task: "Music mini-player (YouTube embed presets)"
-##     implemented: false
-##     working: false
+##     implemented: true
+##     working: true
 ##     file: "/app/frontend/src/components/MusicPlayer.js"
 ##     stuck_count: 0
 ##     priority: "high"
-##     needs_retesting: true
+##     needs_retesting: false
 ##     status_history:
-##         -working: "NA"
+##         -working: true
 ##         -agent: "main"
-##         -comment: "Planned: floating mini-player using YouTube embeds with category presets (Lo-fi, Ambient, Synthwave, Rain, White noise, Piano, Nature, Binaural focus), play/pause/next/prev + volume via IFrame API wrapper; persist state in localStorage; no autoplay."
+##         -comment: "Implemented floating mini-player using YouTube IFrame API with category presets (Lo-fi, Ambient, Synthwave, Rain, White noise, Piano, Nature, Binaural focus), play/pause/next/prev + volume; persists state in localStorage; no autoplay (requires user click). Verified via screenshot after login."
 ##
 ##   - task: "Bottom-left profile + settings dock (after login)"
-##     implemented: false
-##     working: false
+##     implemented: true
+##     working: true
 ##     file: "/app/frontend/src/components/BottomLeftDock.js"
 ##     stuck_count: 0
 ##     priority: "high"
-##     needs_retesting: true
+##     needs_retesting: false
 ##     status_history:
-##         -working: "NA"
+##         -working: true
 ##         -agent: "main"
-##         -comment: "Planned: bottom-left fixed dock showing username/level with buttons to /profile and /settings/background; only visible after login."
+##         -comment: "Implemented bottom-left fixed dock showing username + level with buttons to /profile and /settings/background; only visible after login. Verified via screenshot after signup/login."
 ##     -agent: "testing"
 ##     -message: "BACKEND TESTING COMPLETE - ALL SYSTEMS OPERATIONAL: ✅ Created comprehensive test suite at /app/backend/tests/test_preview_backend_flows.py ✅ All authentication flows working (signup, login, /me endpoint) ✅ All 7 mode APIs fully functional and returning proper JSON ✅ Quest endpoints operational ✅ Error handling working correctly ✅ 16/16 tests passed (100% success rate). Backend is production-ready. Only remaining task is frontend testing which is outside my scope. Minor note: /healthz endpoint not routed through ingress but all /api/* endpoints work perfectly via external preview URL."
 ##     -agent: "testing"
