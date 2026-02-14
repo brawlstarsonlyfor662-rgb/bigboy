@@ -1493,6 +1493,137 @@ fastify.get('/api/system/analytics/export', { preHandler: [fastify.authenticate]
   return { csv };
 });
 
+// ==================== ADMIN GLOBAL QUEST MANAGEMENT ====================
+
+// Get All Global Quests (Admin)
+fastify.get('/api/admin/quests/global', { preHandler: [fastify.authenticate] }, async (request) => {
+  await getCurrentAdmin(request);
+  
+  const quests = await db.collection('global_quests').find({}, { projection: { _id: 0 } })
+    .sort({ createdAt: -1 })
+    .toArray();
+  
+  // Get completion stats for each quest
+  const questsWithStats = await Promise.all(quests.map(async (quest) => {
+    const completions = await db.collection('user_quest_completions').countDocuments({ questId: quest.id });
+    const totalUsers = await db.collection('users').countDocuments({});
+    
+    return {
+      ...quest,
+      xp_reward: quest.xpReward,
+      expires_at: quest.expiresAt,
+      created_at: quest.createdAt,
+      completion_count: completions,
+      completion_rate: totalUsers > 0 ? ((completions / totalUsers) * 100).toFixed(1) : 0
+    };
+  }));
+  
+  return { quests: questsWithStats };
+});
+
+// Create Global Quest (Admin)
+fastify.post('/api/admin/quests/global', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+  const admin = await getCurrentAdmin(request);
+  const { title, description, xpReward, target, type, difficulty, category, expiresIn } = request.body;
+  
+  if (!title || !xpReward || !target || !type) {
+    return reply.status(400).send({ detail: 'Missing required fields: title, xpReward, target, type' });
+  }
+  
+  let expiresAt = null;
+  if (expiresIn && expiresIn > 0) {
+    // expiresIn is in hours
+    expiresAt = new Date(Date.now() + expiresIn * 60 * 60 * 1000).toISOString();
+  }
+  
+  const quest = {
+    id: uuidv4(),
+    title,
+    description: description || '',
+    xpReward: parseInt(xpReward),
+    target: parseInt(target),
+    type,
+    difficulty: difficulty || 'medium',
+    category: category || 'productivity',
+    is_global: true,
+    expiresAt,
+    createdBy: admin.id,
+    createdAt: new Date().toISOString()
+  };
+  
+  await db.collection('global_quests').insertOne(quest);
+  
+  return { 
+    success: true, 
+    quest: { ...quest, xp_reward: quest.xpReward, expires_at: quest.expiresAt, created_at: quest.createdAt },
+    message: 'Global quest created successfully' 
+  };
+});
+
+// Update Global Quest (Admin)
+fastify.put('/api/admin/quests/global/:questId', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+  await getCurrentAdmin(request);
+  const { questId } = request.params;
+  const updates = request.body;
+  
+  const quest = await db.collection('global_quests').findOne({ id: questId });
+  if (!quest) return reply.status(404).send({ detail: 'Quest not found' });
+  
+  // Handle expiration update
+  if (updates.expiresIn !== undefined) {
+    updates.expiresAt = updates.expiresIn > 0 
+      ? new Date(Date.now() + updates.expiresIn * 60 * 60 * 1000).toISOString()
+      : null;
+    delete updates.expiresIn;
+  }
+  
+  await db.collection('global_quests').updateOne(
+    { id: questId },
+    { $set: { ...updates, updatedAt: new Date().toISOString() } }
+  );
+  
+  return { success: true, message: 'Quest updated successfully' };
+});
+
+// Delete Global Quest (Admin)
+fastify.delete('/api/admin/quests/global/:questId', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+  await getCurrentAdmin(request);
+  const { questId } = request.params;
+  
+  const result = await db.collection('global_quests').deleteOne({ id: questId });
+  if (result.deletedCount === 0) return reply.status(404).send({ detail: 'Quest not found' });
+  
+  // Also delete all user completions for this quest
+  await db.collection('user_quest_completions').deleteMany({ questId });
+  
+  return { success: true, message: 'Quest deleted successfully' };
+});
+
+// Get Global Quest Stats (Admin)
+fastify.get('/api/admin/quests/stats', { preHandler: [fastify.authenticate] }, async (request) => {
+  await getCurrentAdmin(request);
+  
+  const totalGlobalQuests = await db.collection('global_quests').countDocuments({});
+  const activeQuests = await db.collection('global_quests').countDocuments({
+    $or: [
+      { expiresAt: { $gt: new Date().toISOString() } },
+      { expiresAt: null }
+    ]
+  });
+  const expiredQuests = totalGlobalQuests - activeQuests;
+  
+  const totalCompletions = await db.collection('user_quest_completions').countDocuments({});
+  const totalUsers = await db.collection('users').countDocuments({});
+  
+  return {
+    total_global_quests: totalGlobalQuests,
+    active_quests: activeQuests,
+    expired_quests: expiredQuests,
+    total_completions: totalCompletions,
+    average_completions_per_user: totalUsers > 0 ? (totalCompletions / totalUsers).toFixed(2) : 0
+  };
+});
+
 // SPA Catch-all route - MUST be last to serve index.html for all non-API routes
 fastify.setNotFoundHandler((request, reply) => {
   // If request is for API endpoint, return 404
