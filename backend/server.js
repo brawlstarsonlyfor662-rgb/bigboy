@@ -899,31 +899,146 @@ fastify.get('/api/quests/weekly', { preHandler: [fastify.authenticate] }, async 
     return { quests: existing.map(q => ({ ...q, user_id: q.userId, xp_reward: q.xpReward })), week: weekNum };
   }
   
-  const weeklyTemplates = [
-    { title: 'Complete 20 tasks this week', xpReward: 200, target: 20, type: 'tasks' },
-    { title: 'Achieve 7-day streak', xpReward: 300, target: 7, type: 'streak' },
-    { title: 'Complete 3 Boss Challenges', xpReward: 250, target: 3, type: 'boss' },
-    { title: 'Earn 1000 XP this week', xpReward: 150, target: 1000, type: 'xp' }
-  ];
+  const tasksCompleted = await db.collection('tasks').countDocuments({ userId: user.id, completed: true });
+  const userContext = {
+    level: user.level,
+    streak: user.currentStreak,
+    disciplineScore: user.disciplineScore,
+    tasksCompleted
+  };
+  
+  // Try AI generation first
+  let questTemplates = await generateAIQuests('weekly', userContext);
+  
+  // Fallback to templates if AI fails
+  if (!questTemplates || questTemplates.length === 0) {
+    questTemplates = getWeeklyQuestTemplates(user.level);
+  }
   
   const quests = [];
-  for (const template of weeklyTemplates) {
+  for (const template of questTemplates) {
     const quest = {
       id: uuidv4(),
       userId: user.id,
       week: weekNum,
       title: template.title,
+      description: template.description || '',
       xpReward: template.xpReward,
       target: template.target,
       progress: 0,
       completed: false,
-      type: template.type
+      type: template.type,
+      difficulty: template.difficulty || 'medium',
+      category: template.category || 'productivity'
     };
     await db.collection('weekly_quests').insertOne(quest);
     quests.push({ ...quest, user_id: quest.userId, xp_reward: quest.xpReward });
   }
   
   return { quests, week: weekNum };
+});
+
+// Monthly Quests (NEW)
+fastify.get('/api/quests/monthly', { preHandler: [fastify.authenticate] }, async (request) => {
+  const user = await getCurrentUser(request);
+  const now = new Date();
+  const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  
+  const existing = await db.collection('monthly_quests').find({ userId: user.id, month: monthKey }, { projection: { _id: 0 } }).toArray();
+  if (existing.length > 0) {
+    return { quests: existing.map(q => ({ ...q, user_id: q.userId, xp_reward: q.xpReward })), month: monthKey };
+  }
+  
+  const tasksCompleted = await db.collection('tasks').countDocuments({ userId: user.id, completed: true });
+  const userContext = {
+    level: user.level,
+    streak: user.currentStreak,
+    disciplineScore: user.disciplineScore,
+    tasksCompleted
+  };
+  
+  // Try AI generation first
+  let questTemplates = await generateAIQuests('monthly', userContext);
+  
+  // Fallback to templates if AI fails
+  if (!questTemplates || questTemplates.length === 0) {
+    questTemplates = getMonthlyQuestTemplates(user.level);
+  }
+  
+  const quests = [];
+  for (const template of questTemplates) {
+    const quest = {
+      id: uuidv4(),
+      userId: user.id,
+      month: monthKey,
+      title: template.title,
+      description: template.description || '',
+      xpReward: template.xpReward,
+      target: template.target,
+      progress: 0,
+      completed: false,
+      type: template.type,
+      difficulty: template.difficulty || 'hard',
+      category: template.category || 'productivity'
+    };
+    await db.collection('monthly_quests').insertOne(quest);
+    quests.push({ ...quest, user_id: quest.userId, xp_reward: quest.xpReward });
+  }
+  
+  return { quests, month: monthKey };
+});
+
+// Micro Quests (NEW) - Quick 5-15 min wins
+fastify.get('/api/quests/micro', { preHandler: [fastify.authenticate] }, async (request) => {
+  const user = await getCurrentUser(request);
+  const today = new Date().toISOString().split('T')[0];
+  
+  // Check if user already has micro quests for today
+  const existing = await db.collection('micro_quests').find({ userId: user.id, date: today, completed: false }, { projection: { _id: 0 } }).toArray();
+  if (existing.length >= 8) {
+    return { quests: existing.map(q => ({ ...q, user_id: q.userId, xp_reward: q.xpReward })), date: today };
+  }
+  
+  const tasksCompleted = await db.collection('tasks').countDocuments({ userId: user.id, completed: true });
+  const userContext = {
+    level: user.level,
+    streak: user.currentStreak,
+    disciplineScore: user.disciplineScore,
+    tasksCompleted
+  };
+  
+  // Try AI generation first
+  let questTemplates = await generateAIQuests('micro', userContext);
+  
+  // Fallback to templates if AI fails
+  if (!questTemplates || questTemplates.length === 0) {
+    questTemplates = getMicroQuestTemplates(user.level);
+  }
+  
+  // Generate 8 micro quests
+  const selected = questTemplates.sort(() => 0.5 - Math.random()).slice(0, 8);
+  
+  const quests = [];
+  for (const template of selected) {
+    const quest = {
+      id: uuidv4(),
+      userId: user.id,
+      date: today,
+      title: template.title,
+      description: template.description || '',
+      xpReward: template.xpReward,
+      target: template.target,
+      progress: 0,
+      completed: false,
+      type: template.type,
+      difficulty: template.difficulty || 'easy',
+      category: template.category || 'productivity'
+    };
+    await db.collection('micro_quests').insertOne(quest);
+    quests.push({ ...quest, user_id: quest.userId, xp_reward: quest.xpReward });
+  }
+  
+  return { quests: [...existing.map(q => ({ ...q, user_id: q.userId, xp_reward: q.xpReward })), ...quests], date: today };
 });
 
 // Complete Quest
