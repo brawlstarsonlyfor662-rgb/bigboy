@@ -53,7 +53,9 @@ const QuestsHub = () => {
   const completeQuest = async (questId, questType) => {
     setCompleting(questId);
     try {
-      const response = await axios.post(`/quests/${questId}/complete?quest_type=${questType}`);
+      const isGlobal = questType === 'global';
+      const endpoint = isGlobal ? `/quests/global/${questId}/complete` : `/quests/${questId}/complete?quest_type=${questType}`;
+      const response = await axios.post(endpoint);
       
       if (response.data.success) {
         toast.success(`Quest Completed! +${response.data.xp_gained} XP`, {
