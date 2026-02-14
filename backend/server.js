@@ -1102,6 +1102,232 @@ fastify.get('/api/learning/youtube', { preHandler: [fastify.authenticate] }, asy
   return { videos, subject, topic };
 });
 
+// ==================== GLOBAL QUESTS ====================
+
+// Get Global Quests (available to all users)
+fastify.get('/api/quests/global', { preHandler: [fastify.authenticate] }, async (request) => {
+  const user = await getCurrentUser(request);
+  const now = new Date();
+  
+  // Get all active global quests (not expired)
+  const globalQuests = await db.collection('global_quests').find({
+    $or: [
+      { expiresAt: { $gt: now.toISOString() } },
+      { expiresAt: null }
+    ]
+  }, { projection: { _id: 0 } }).toArray();
+  
+  // Get user's completion status for each global quest
+  const completions = await db.collection('user_quest_completions').find({
+    userId: user.id,
+    questId: { $in: globalQuests.map(q => q.id) }
+  }, { projection: { _id: 0 } }).toArray();
+  
+  const completionMap = {};
+  completions.forEach(c => {
+    completionMap[c.questId] = c;
+  });
+  
+  // Merge quest data with completion status
+  const questsWithStatus = globalQuests.map(quest => ({
+    ...quest,
+    completed: !!completionMap[quest.id],
+    completedAt: completionMap[quest.id]?.completedAt,
+    user_id: user.id,
+    xp_reward: quest.xpReward,
+    is_global: true,
+    time_remaining: quest.expiresAt ? Math.max(0, new Date(quest.expiresAt) - now) : null
+  }));
+  
+  return { quests: questsWithStatus };
+});
+
+// Get Beginner Quests (for new users, level < 5)
+fastify.get('/api/quests/beginner', { preHandler: [fastify.authenticate] }, async (request) => {
+  const user = await getCurrentUser(request);
+  
+  // Only show beginner quests for users below level 5
+  if (user.level >= 5) {
+    return { quests: [], message: 'Beginner quests are for users below level 5' };
+  }
+  
+  const today = new Date().toISOString().split('T')[0];
+  
+  // Check if beginner quests already generated for today
+  const existing = await db.collection('beginner_quests').find({
+    userId: user.id,
+    date: today
+  }, { projection: { _id: 0 } }).toArray();
+  
+  if (existing.length > 0) {
+    return { quests: existing.map(q => ({ ...q, user_id: q.userId, xp_reward: q.xpReward })) };
+  }
+  
+  // Beginner quest templates
+  const beginnerTemplates = [
+    // Language Learning
+    { title: '5-Minute Vocabulary', description: 'Learn 5 new words in any language', category: 'language', subject: 'vocabulary', xpReward: 20, target: 5, type: 'study', difficulty: 'easy' },
+    { title: 'Grammar Basics', description: 'Complete a basic grammar lesson', category: 'language', subject: 'grammar', xpReward: 25, target: 1, type: 'study', difficulty: 'easy' },
+    { title: 'Practice Pronunciation', description: 'Practice speaking for 10 minutes', category: 'language', subject: 'speaking', xpReward: 30, target: 10, type: 'practice', difficulty: 'easy' },
+    
+    // STEM - Math
+    { title: 'Math Warm-up', description: 'Solve 5 basic math problems', category: 'stem', subject: 'math', xpReward: 25, target: 5, type: 'practice', difficulty: 'easy' },
+    { title: 'Number Sense', description: 'Complete mental math exercises', category: 'stem', subject: 'math', xpReward: 20, target: 1, type: 'practice', difficulty: 'easy' },
+    
+    // STEM - Science
+    { title: 'Science Explorer', description: 'Watch a 5-min science video', category: 'stem', subject: 'science', xpReward: 20, target: 5, type: 'study', difficulty: 'easy' },
+    { title: 'Experiment Time', description: 'Learn about a scientific concept', category: 'stem', subject: 'science', xpReward: 30, target: 1, type: 'study', difficulty: 'easy' },
+    
+    // STEM - Programming
+    { title: 'Code Your First Program', description: 'Write a simple "Hello World" program', category: 'stem', subject: 'programming', xpReward: 35, target: 1, type: 'practice', difficulty: 'easy' },
+    { title: 'Learn Basic Syntax', description: 'Study programming basics for 10 minutes', category: 'stem', subject: 'programming', xpReward: 25, target: 10, type: 'study', difficulty: 'easy' },
+    
+    // General Learning
+    { title: 'Reading Time', description: 'Read for 15 minutes', category: 'general', subject: 'reading', xpReward: 20, target: 15, type: 'study', difficulty: 'easy' },
+    { title: 'Note Taking Practice', description: 'Take organized notes from any lesson', category: 'general', subject: 'study_skills', xpReward: 25, target: 1, type: 'practice', difficulty: 'easy' }
+  ];
+  
+  // Select 5 random beginner quests
+  const selected = beginnerTemplates.sort(() => 0.5 - Math.random()).slice(0, 5);
+  
+  const quests = [];
+  for (const template of selected) {
+    const quest = {
+      id: uuidv4(),
+      userId: user.id,
+      date: today,
+      title: template.title,
+      description: template.description,
+      category: template.category,
+      subject: template.subject,
+      xpReward: template.xpReward,
+      target: template.target,
+      progress: 0,
+      completed: false,
+      type: template.type,
+      difficulty: template.difficulty,
+      is_beginner: true
+    };
+    await db.collection('beginner_quests').insertOne(quest);
+    quests.push({ ...quest, user_id: quest.userId, xp_reward: quest.xpReward });
+  }
+  
+  return { quests };
+});
+
+// Complete Global Quest
+fastify.post('/api/quests/global/:questId/complete', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+  const user = await getCurrentUser(request);
+  const { questId } = request.params;
+  
+  const quest = await db.collection('global_quests').findOne({ id: questId });
+  if (!quest) return reply.status(404).send({ detail: 'Quest not found' });
+  
+  // Check if already completed
+  const existing = await db.collection('user_quest_completions').findOne({
+    userId: user.id,
+    questId: questId
+  });
+  
+  if (existing) return reply.status(400).send({ detail: 'Quest already completed' });
+  
+  // Check if expired
+  if (quest.expiresAt && new Date(quest.expiresAt) < new Date()) {
+    return reply.status(400).send({ detail: 'Quest has expired' });
+  }
+  
+  // Mark as completed
+  await db.collection('user_quest_completions').insertOne({
+    id: uuidv4(),
+    userId: user.id,
+    questId: questId,
+    completedAt: new Date().toISOString()
+  });
+  
+  // Award XP
+  const newTotalXp = user.totalXp + quest.xpReward;
+  const newLevel = calculateLevelFromXp(newTotalXp);
+  
+  await db.collection('users').updateOne(
+    { id: user.id },
+    { $set: { totalXp: newTotalXp, xp: newTotalXp % xpForNextLevel(newLevel), level: newLevel } }
+  );
+  
+  return { 
+    success: true, 
+    xp_gained: quest.xpReward, 
+    level_up: newLevel > user.level, 
+    new_level: newLevel 
+  };
+});
+
+// ==================== LEADERBOARD ====================
+
+fastify.get('/api/leaderboard', { preHandler: [fastify.authenticate] }, async (request) => {
+  const limit = parseInt(request.query.limit) || 100;
+  const timeframe = request.query.timeframe || 'all_time'; // all_time, weekly, monthly
+  
+  let query = {};
+  
+  if (timeframe === 'weekly') {
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    query.lastActive = { $gte: weekAgo };
+  } else if (timeframe === 'monthly') {
+    const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    query.lastActive = { $gte: monthAgo };
+  }
+  
+  const topUsers = await db.collection('users').find(query, {
+    projection: { 
+      _id: 0, 
+      id: 1, 
+      username: 1, 
+      level: 1, 
+      totalXp: 1, 
+      currentStreak: 1, 
+      disciplineScore: 1,
+      createdAt: 1
+    }
+  })
+  .sort({ level: -1, totalXp: -1 })
+  .limit(limit)
+  .toArray();
+  
+  // Get current user's rank
+  const currentUser = await getCurrentUser(request);
+  const usersAbove = await db.collection('users').countDocuments({
+    $or: [
+      { level: { $gt: currentUser.level } },
+      { 
+        level: currentUser.level, 
+        totalXp: { $gt: currentUser.totalXp } 
+      }
+    ]
+  });
+  
+  const userRank = usersAbove + 1;
+  
+  // Add ranks to leaderboard
+  const leaderboard = topUsers.map((user, index) => ({
+    rank: index + 1,
+    id: user.id,
+    username: user.username,
+    level: user.level,
+    total_xp: user.totalXp,
+    current_streak: user.currentStreak,
+    discipline_score: user.disciplineScore,
+    created_at: user.createdAt,
+    is_current_user: user.id === currentUser.id
+  }));
+  
+  return { 
+    leaderboard, 
+    current_user_rank: userRank,
+    total_users: await db.collection('users').countDocuments({}),
+    timeframe 
+  };
+});
+
 // ==================== ADMIN ROUTES ====================
 
 fastify.post('/api/system/access', async (request, reply) => {
