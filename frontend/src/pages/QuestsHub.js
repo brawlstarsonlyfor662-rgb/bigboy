@@ -193,7 +193,9 @@ const QuestsHub = () => {
     { id: 'daily', label: 'Daily', icon: <Calendar className="w-5 h-5" />, count: dailyQuests.length },
     { id: 'weekly', label: 'Weekly', icon: <Trophy className="w-5 h-5" />, count: weeklyQuests.length },
     { id: 'monthly', label: 'Monthly', icon: <Award className="w-5 h-5" />, count: monthlyQuests.length },
-    { id: 'micro', label: 'Micro', icon: <Zap className="w-5 h-5" />, count: microQuests.length }
+    { id: 'micro', label: 'Micro', icon: <Zap className="w-5 h-5" />, count: microQuests.length },
+    { id: 'global', label: 'Global', icon: <Target className="w-5 h-5" />, count: globalQuests.length },
+    ...(user?.level < 5 ? [{ id: 'beginner', label: 'Beginner', icon: <Star className="w-5 h-5" />, count: beginnerQuests.length }] : [])
   ];
 
   const getCurrentQuests = () => {
