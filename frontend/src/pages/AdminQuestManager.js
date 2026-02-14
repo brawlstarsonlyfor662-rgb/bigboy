@@ -45,7 +45,11 @@ const AdminQuestManager = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await axios.get('/api/admin/quests/stats');
+      const response = await axios.get('/api/admin/quests/stats', {
+        headers: {
+          Authorization: `Bearer ${sessionStorage.getItem('admin_token') || localStorage.getItem('token')}`
+        }
+      });
       setStats(response.data);
     } catch (error) {
       console.error('Failed to load stats:', error);
