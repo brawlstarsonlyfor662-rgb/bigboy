@@ -172,8 +172,7 @@
 ##   run_ui: true
 ##
 ## test_plan:
-##   current_focus:
-##     - "7 feature mode pages/routes"
+##   current_focus: []
 ##   stuck_tasks: []
 ##   test_all: false
 ##   test_priority: "high_first"
