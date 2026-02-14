@@ -11,11 +11,13 @@ const Leaderboard = () => {
   const [currentUserRank, setCurrentUserRank] = useState(null);
   const [totalUsers, setTotalUsers] = useState(0);
   const [timeframe, setTimeframe] = useState('all_time');
+  const [leaderboardType, setLeaderboardType] = useState('global'); // global or local
+  const [country, setCountry] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchLeaderboard();
-  }, [timeframe]);
+  }, [timeframe, leaderboardType]);
 
   const fetchLeaderboard = async () => {
     setLoading(true);
