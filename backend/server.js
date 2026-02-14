@@ -141,6 +141,121 @@ const generateBossChallenge = (userLevel) => {
   };
 };
 
+// AI-Powered Quest Generator
+const generateAIQuests = async (questType, userContext) => {
+  try {
+    const { LlmChat, UserMessage } = await import('emergentintegrations/llm/chat');
+    
+    const systemPrompt = `You are a gamification expert designing productivity quests. Generate engaging, achievable quests that help users build good habits and earn XP.
+
+Quest Types:
+- daily: 3-5 quick daily tasks (30-50 XP each)
+- weekly: 3-4 bigger weekly goals (100-300 XP each)
+- monthly: 2-3 major monthly achievements (500-1000 XP each)
+- micro: 5-10 quick wins (10-25 XP each, 5-15 min tasks)
+
+User Context:
+- Level: ${userContext.level}
+- Current Streak: ${userContext.streak} days
+- Discipline Score: ${userContext.disciplineScore}/100
+- Completed Tasks: ${userContext.tasksCompleted}
+
+Return ONLY valid JSON array of quests with this exact format:
+[
+  {
+    "title": "Quest title (action-oriented, clear)",
+    "description": "Brief description",
+    "xpReward": number,
+    "target": number (quantity to complete),
+    "type": "tasks|focus|streak|skill|study|habit|challenge",
+    "difficulty": "easy|medium|hard",
+    "category": "productivity|learning|wellness|discipline"
+  }
+]
+
+Make quests:
+- Specific and measurable
+- Varied (mix categories)
+- Appropriate for user level
+- Motivating and fun
+- Progressive (harder as level increases)`;
+
+    const userPrompt = `Generate ${questType === 'daily' ? '5' : questType === 'weekly' ? '4' : questType === 'monthly' ? '3' : '8'} ${questType} quests for a level ${userContext.level} user.`;
+    
+    const chat = new LlmChat({
+      apiKey: process.env.EMERGENT_LLM_KEY,
+      sessionId: `quest_gen_${questType}_${Date.now()}`,
+      systemMessage: systemPrompt
+    }).withModel('openai', 'gpt-5.2');
+    
+    const response = await chat.sendMessage(new UserMessage({ text: userPrompt }));
+    
+    // Parse AI response
+    const jsonMatch = response.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      const quests = JSON.parse(jsonMatch[0]);
+      return quests;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('AI quest generation failed:', error);
+    return null;
+  }
+};
+
+// Fallback quest templates
+const getDailyQuestTemplates = (userLevel) => {
+  const baseQuests = [
+    { title: 'Complete 3 Study Tasks', description: 'Finish 3 tasks of any difficulty', xpReward: 50, target: 3, type: 'tasks', difficulty: 'easy', category: 'productivity' },
+    { title: 'Focus for 30 minutes', description: 'Complete a focused study session', xpReward: 40, target: 30, type: 'focus', difficulty: 'easy', category: 'productivity' },
+    { title: 'Maintain your streak', description: 'Keep your daily streak alive', xpReward: 30, target: 1, type: 'streak', difficulty: 'easy', category: 'discipline' },
+    { title: 'Level up one skill tree', description: 'Earn XP in any skill tree', xpReward: 60, target: 1, type: 'skill', difficulty: 'medium', category: 'learning' },
+    { title: 'Complete AI Study session', description: 'Use AI Coach for learning', xpReward: 50, target: 1, type: 'study', difficulty: 'medium', category: 'learning' },
+    { title: 'Pomodoro Master', description: 'Complete 4 Pomodoro cycles', xpReward: 70, target: 4, type: 'focus', difficulty: 'medium', category: 'productivity' },
+    { title: 'Early Bird', description: 'Complete a task before 10 AM', xpReward: 40, target: 1, type: 'habit', difficulty: 'easy', category: 'discipline' },
+    { title: 'Task Crusher', description: 'Complete 5 tasks in one day', xpReward: 80, target: 5, type: 'tasks', difficulty: 'hard', category: 'productivity' }
+  ];
+  
+  // Scale rewards by user level
+  return baseQuests.map(q => ({
+    ...q,
+    xpReward: Math.floor(q.xpReward * (1 + userLevel * 0.05))
+  }));
+};
+
+const getWeeklyQuestTemplates = (userLevel) => {
+  return [
+    { title: 'Weekly Warrior', description: 'Complete 20 tasks this week', xpReward: 200 + userLevel * 10, target: 20, type: 'tasks', difficulty: 'medium', category: 'productivity' },
+    { title: '7-Day Streak Master', description: 'Maintain a 7-day streak', xpReward: 300 + userLevel * 15, target: 7, type: 'streak', difficulty: 'hard', category: 'discipline' },
+    { title: 'Boss Hunter', description: 'Complete 3 Boss Challenges', xpReward: 250 + userLevel * 12, target: 3, type: 'challenge', difficulty: 'hard', category: 'productivity' },
+    { title: 'XP Grinder', description: 'Earn 1000 XP this week', xpReward: 150 + userLevel * 8, target: 1000, type: 'xp', difficulty: 'medium', category: 'productivity' },
+    { title: 'Skill Master', description: 'Gain levels in all 4 skill trees', xpReward: 280 + userLevel * 14, target: 4, type: 'skill', difficulty: 'hard', category: 'learning' }
+  ];
+};
+
+const getMonthlyQuestTemplates = (userLevel) => {
+  return [
+    { title: 'Monthly Marathon', description: 'Complete 100 tasks this month', xpReward: 800 + userLevel * 40, target: 100, type: 'tasks', difficulty: 'hard', category: 'productivity' },
+    { title: 'Unstoppable Force', description: 'Achieve a 30-day streak', xpReward: 1200 + userLevel * 60, target: 30, type: 'streak', difficulty: 'legendary', category: 'discipline' },
+    { title: 'Skill Tree Champion', description: 'Reach level 10 in any skill tree', xpReward: 1000 + userLevel * 50, target: 10, type: 'skill', difficulty: 'hard', category: 'learning' },
+    { title: 'XP Legend', description: 'Earn 5000 XP this month', xpReward: 900 + userLevel * 45, target: 5000, type: 'xp', difficulty: 'hard', category: 'productivity' }
+  ];
+};
+
+const getMicroQuestTemplates = (userLevel) => {
+  return [
+    { title: 'Quick Win', description: 'Complete 1 easy task', xpReward: 15, target: 1, type: 'tasks', difficulty: 'easy', category: 'productivity' },
+    { title: '5-Min Focus', description: 'Focus for 5 minutes', xpReward: 10, target: 5, type: 'focus', difficulty: 'easy', category: 'productivity' },
+    { title: 'Skill Boost', description: 'Complete any task in Mind tree', xpReward: 20, target: 1, type: 'skill', difficulty: 'easy', category: 'learning' },
+    { title: 'Habit Stack', description: 'Complete 2 tasks in a row', xpReward: 25, target: 2, type: 'habit', difficulty: 'easy', category: 'discipline' },
+    { title: 'Speed Demon', description: 'Complete a task in under 10 min', xpReward: 20, target: 1, type: 'tasks', difficulty: 'easy', category: 'productivity' },
+    { title: 'Morning Ritual', description: 'Complete 1 task before noon', xpReward: 15, target: 1, type: 'habit', difficulty: 'easy', category: 'discipline' },
+    { title: 'Knowledge Seeker', description: 'Complete 1 Knowledge tree task', xpReward: 20, target: 1, type: 'skill', difficulty: 'easy', category: 'learning' },
+    { title: 'Micro Focus', description: 'Do a 10-minute focus session', xpReward: 18, target: 10, type: 'focus', difficulty: 'easy', category: 'productivity' }
+  ];
+};
+
 // AI Coach helper
 const COACH_MODES = {
   strict: "You are a strict military-style discipline coach. Be tough, direct, and push the user to their limits.",
