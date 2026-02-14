@@ -29,7 +29,11 @@ const AdminQuestManager = () => {
 
   const fetchQuests = async () => {
     try {
-      const response = await axios.get('/api/admin/quests/global');
+      const response = await axios.get('/api/admin/quests/global', {
+        headers: {
+          Authorization: `Bearer ${sessionStorage.getItem('admin_token') || localStorage.getItem('token')}`
+        }
+      });
       setQuests(response.data.quests || []);
     } catch (error) {
       toast.error('Failed to load quests');
