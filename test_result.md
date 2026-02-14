@@ -101,3 +101,73 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+## user_problem_statement: "Fix preview 520 error; verify 7 new mode routes; run health check"
+## backend:
+##   - task: "Unblock preview URL (520) by aligning backend to port 8001"
+##     implemented: true
+##     working: "NA"
+##     file: "/app/backend/server.js"
+##     stuck_count: 0
+##     priority: "high"
+##     needs_retesting: true
+##     status_history:
+##         -working: false
+##         -agent: "main"
+##         -comment: "Preview returned HTTP 520; backend was listening on 8009. Updated server.js to listen on process.env.PORT default 8001; added PORT=8001 to backend/.env; restarted backend."
+##
+##   - task: "7 feature mode placeholder APIs"
+##     implemented: true
+##     working: "NA"
+##     file: "/app/backend/server.js"
+##     stuck_count: 0
+##     priority: "high"
+##     needs_retesting: true
+##     status_history:
+##         -working: "NA"
+##         -agent: "main"
+##         -comment: "Existing mode endpoints present for strategist/identity/impact/founder/psychology. Some AI calls use emergentintegrations with EMERGENT_LLM_KEY placeholder and may fall back."
+##
+## frontend:
+##   - task: "Unblock preview URL (serve frontend)"
+##     implemented: true
+##     working: "NA"
+##     file: "/etc/supervisor/conf.d/frontend_real.conf"
+##     stuck_count: 0
+##     priority: "high"
+##     needs_retesting: true
+##     status_history:
+##         -working: false
+##         -agent: "main"
+##         -comment: "Frontend supervisor program was FATAL (echo placeholder). Added frontend_real supervisor config running yarn start on 3000. Preview now returns HTTP 200."
+##
+##   - task: "7 feature mode pages/routes"
+##     implemented: true
+##     working: "NA"
+##     file: "/app/frontend/src/App.js"
+##     stuck_count: 0
+##     priority: "high"
+##     needs_retesting: true
+##     status_history:
+##         -working: "NA"
+##         -agent: "main"
+##         -comment: "Routes currently include /strategist, /identity, /world-impact, /founder, /psychology. Need verification that all requested 7 modes are present and accessible."
+##
+## metadata:
+##   created_by: "main_agent"
+##   version: "1.0"
+##   test_sequence: 1
+##   run_ui: true
+##
+## test_plan:
+##   current_focus:
+##     - "Unblock preview URL (520) by aligning backend to port 8001"
+##     - "7 feature mode pages/routes"
+##   stuck_tasks:
+##     - "Unblock preview URL (520) by aligning backend to port 8001"
+##   test_all: false
+##   test_priority: "high_first"
+##
+## agent_communication:
+##     -agent: "main"
+##     -message: "Preview URL now returns 200 and landing page loads via screenshot tool. Please test backend auth + mode endpoints and frontend navigation/login + mode pages."
