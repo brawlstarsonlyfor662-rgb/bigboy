@@ -8,6 +8,9 @@ import '@/App.css';
 import LandingPage from './pages/LandingPage';
 import Auth from './pages/Auth';
 import Dashboard from './pages/Dashboard';
+
+import MusicPlayer from './components/MusicPlayer';
+import BottomLeftDock from './components/BottomLeftDock';
 import TaskHub from './pages/TaskHub';
 import SkillTrees from './pages/SkillTrees';
 import Achievements from './pages/Achievements';
@@ -135,6 +138,9 @@ function App() {
               <Route path="/system-control" element={<SystemControl />} />
             </Routes>
           </AnimatePresence>
+
+          {user && <BottomLeftDock />}
+          {user && <MusicPlayer />}
         </BrowserRouter>
         <Toaster 
           theme="dark" 
