@@ -117,6 +117,7 @@ function App() {
               <Route path="/quests/weekly" element={user ? <WeeklyQuests /> : <Navigate to="/" />} />
               <Route path="/leaderboard" element={user ? <Leaderboard /> : <Navigate to="/" />} />
               <Route path="/admin/quests" element={user ? <AdminQuestManager /> : <Navigate to="/" />} />
+              <Route path="/settings/background" element={user ? <BackgroundCustomizer /> : <Navigate to="/" />} />
               {/* Hidden admin route */}
               <Route path="/system-control" element={<SystemControl />} />
             </Routes>
