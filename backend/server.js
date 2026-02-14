@@ -669,30 +669,42 @@ fastify.post('/api/ai-coach/chat', { preHandler: [fastify.authenticate] }, async
 // Analytics
 fastify.get('/api/analytics/dashboard', { preHandler: [fastify.authenticate] }, async (request) => {
   const user = await getCurrentUser(request);
-  
-  const tasks = await db.collection('tasks').find({ userId: user.id, completed: true }, { projection: { _id: 0 } }).toArray();
-  const focusSessions = await db.collection('focus_sessions').find({ userId: user.id }, { projection: { _id: 0 } }).toArray();
-  
+
+  const days = Math.min(parseInt(request.query.days || '30', 10) || 30, 365);
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
+  const tasks = await db.collection('tasks')
+    .find({ userId: user.id, completed: true, completedAt: { $gte: since } }, { projection: { _id: 0 } })
+    .sort({ completedAt: -1 })
+    .limit(2000)
+    .toArray();
+
+  const focusSessions = await db.collection('focus_sessions')
+    .find({ userId: user.id, startTime: { $gte: since } }, { projection: { _id: 0 } })
+    .sort({ startTime: -1 })
+    .limit(2000)
+    .toArray();
+
   const totalTasks = tasks.length;
   const totalFocusTime = focusSessions.reduce((sum, s) => sum + (s.durationMinutes || 0), 0);
-  
+
   const burnoutRisk = detectBurnoutRisk(focusSessions, tasks);
   const optimalTime = suggestOptimalTime(focusSessions);
-  
+
   const weeklyData = [];
   for (let i = 6; i >= 0; i--) {
     const date = new Date();
     date.setDate(date.getDate() - i);
     const dateStr = date.toISOString().split('T')[0];
-    
+
     const dayTasks = tasks.filter(t => t.completedAt?.startsWith(dateStr)).length;
     const dayFocus = focusSessions
       .filter(s => s.startTime?.startsWith(dateStr))
       .reduce((sum, s) => sum + (s.durationMinutes || 0), 0);
-    
+
     weeklyData.push({ date: dateStr, tasks: dayTasks, focus_minutes: dayFocus });
   }
-  
+
   return {
     total_tasks: totalTasks,
     total_focus_time: totalFocusTime,
@@ -704,7 +716,8 @@ fastify.get('/api/analytics/dashboard', { preHandler: [fastify.authenticate] }, 
     longest_streak: user.longestStreak,
     burnout_risk: { risk_level: burnoutRisk.riskLevel, message: burnoutRisk.message },
     optimal_time: optimalTime,
-    weekly_data: weeklyData
+    weekly_data: weeklyData,
+    window_days: days
   };
 });
 
