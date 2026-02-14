@@ -238,6 +238,15 @@ const getCurrentAdmin = async (request) => {
 
 // ==================== ROUTES ====================
 
+// Health check endpoint (required for Kubernetes/ingress)
+fastify.get('/health', async () => {
+  return { status: 'ok', service: 'backend', timestamp: new Date().toISOString() };
+});
+
+fastify.get('/healthz', async () => {
+  return { status: 'ok' };
+});
+
 // Public Stats
 fastify.get('/api/public/stats', async () => {
   const totalUsers = await db.collection('users').countDocuments({});
