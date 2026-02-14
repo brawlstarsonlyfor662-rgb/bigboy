@@ -468,8 +468,17 @@ fastify.get('/api/tasks', { preHandler: [fastify.authenticate] }, async (request
   if (request.query.completed !== undefined) {
     query.completed = request.query.completed === 'true';
   }
-  
-  const tasks = await db.collection('tasks').find(query, { projection: { _id: 0 } }).sort({ createdAt: -1 }).toArray();
+
+  const limit = Math.min(parseInt(request.query.limit || '200', 10) || 200, 500);
+  const skip = Math.max(parseInt(request.query.skip || '0', 10) || 0, 0);
+
+  const tasks = await db.collection('tasks')
+    .find(query, { projection: { _id: 0 } })
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .toArray();
+
   return tasks.map(t => ({
     ...t,
     skill_tree: t.skillTree,
