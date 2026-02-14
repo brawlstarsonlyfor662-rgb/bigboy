@@ -22,10 +22,12 @@ const Leaderboard = () => {
   const fetchLeaderboard = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`/leaderboard?timeframe=${timeframe}&limit=100`);
+      const endpoint = leaderboardType === 'global' ? '/leaderboard/global' : '/leaderboard/local';
+      const response = await axios.get(`${endpoint}?timeframe=${timeframe}&limit=100`);
       setLeaderboard(response.data.leaderboard || []);
       setCurrentUserRank(response.data.current_user_rank);
       setTotalUsers(response.data.total_users);
+      setCountry(response.data.country || '');
     } catch (error) {
       toast.error('Failed to load leaderboard');
       console.error(error);
