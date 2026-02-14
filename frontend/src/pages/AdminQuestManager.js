@@ -29,7 +29,7 @@ const AdminQuestManager = () => {
 
   const fetchQuests = async () => {
     try {
-      const response = await axios.get('/admin/quests/global');
+      const response = await axios.get('/api/admin/quests/global');
       setQuests(response.data.quests || []);
     } catch (error) {
       toast.error('Failed to load quests');
