@@ -87,8 +87,37 @@ const Leaderboard = () => {
             🏆 Leaderboard
           </h1>
           <p className="text-gray-400 text-lg">
-            Top warriors ranked by level and XP
+            {leaderboardType === 'global' 
+              ? 'Top warriors worldwide ranked by level and XP'
+              : `Top warriors in ${country} ranked by level and XP`
+            }
           </p>
+        </div>
+
+        {/* Leaderboard Type Selector */}
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setLeaderboardType('global')}
+            className={`px-8 py-4 rounded-lg font-bold transition-all flex items-center gap-2 ${
+              leaderboardType === 'global'
+                ? 'bg-gradient-to-r from-[#00F0FF] to-[#FF00F5] text-white shadow-lg shadow-[#00F0FF]/50'
+                : 'bg-[#1a1a24] text-gray-400 hover:text-white border border-gray-700'
+            }`}
+          >
+            <Trophy className="w-6 h-6" />
+            Global Leaderboard
+          </button>
+          <button
+            onClick={() => setLeaderboardType('local')}
+            className={`px-8 py-4 rounded-lg font-bold transition-all flex items-center gap-2 ${
+              leaderboardType === 'local'
+                ? 'bg-gradient-to-r from-[#00F0FF] to-[#FF00F5] text-white shadow-lg shadow-[#00F0FF]/50'
+                : 'bg-[#1a1a24] text-gray-400 hover:text-white border border-gray-700'
+            }`}
+          >
+            <Award className="w-6 h-6" />
+            Local Leaderboard {country && `(${country})`}
+          </button>
         </div>
 
         {/* Timeframe Selector */}
