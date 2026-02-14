@@ -26,13 +26,31 @@ const Auth = () => {
 
     try {
       const endpoint = isLogin ? '/auth/login' : '/auth/signup';
-      const response = await axios.post(endpoint, formData);
-      
+      const payload = {
+        email: (formData.email || '').trim().toLowerCase(),
+        password: formData.password,
+        username: (formData.username || '').trim()
+      };
+
+      const response = await axios.post(endpoint, payload);
+
+      if (!response.data?.access_token || !response.data?.user) {
+        throw new Error('Malformed authentication response');
+      }
+
       login(response.data.access_token, response.data.user);
       navigate('/dashboard');
     } catch (error) {
+      // Network / server unreachable
+      if (!error.response) {
+        const msg = 'Network error: unable to reach server. Please refresh and try again.';
+        setError(`❌ ${msg}`);
+        toast.error(msg);
+        return;
+      }
+
       const errorMsg = error.response?.data?.detail || 'Authentication failed';
-      
+
       // Detailed error handling
       if (errorMsg.includes('Invalid credentials')) {
         setError('❌ Invalid email or password. Please check and try again.');
@@ -43,7 +61,7 @@ const Auth = () => {
       } else {
         setError(`❌ ${errorMsg}`);
       }
-      
+
       toast.error(errorMsg);
     } finally {
       setLoading(false);

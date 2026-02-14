@@ -74,7 +74,7 @@ function App() {
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     setUser(userData);
     toast.success('Welcome back, warrior!', {
-      description: `Level ${userData.level} • ${userData.current_streak} day streak`,
+      description: `Level ${userData.level} • ${userData.currentStreak ?? 0} day streak`,
     });
   };
 
