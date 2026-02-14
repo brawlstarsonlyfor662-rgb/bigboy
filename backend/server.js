@@ -39,6 +39,13 @@ await fastify.register(jwt, {
   secret: process.env.JWT_SECRET
 });
 
+// Register static file serving for frontend build
+const frontendBuildPath = path.join(__dirname, '../frontend/build');
+await fastify.register(fastifyStatic, {
+  root: frontendBuildPath,
+  prefix: '/',
+});
+
 // Auth decorator
 fastify.decorate('authenticate', async (request, reply) => {
   try {
