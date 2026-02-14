@@ -41,7 +41,7 @@ const AdminQuestManager = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await axios.get('/admin/quests/stats');
+      const response = await axios.get('/api/admin/quests/stats');
       setStats(response.data);
     } catch (error) {
       console.error('Failed to load stats:', error);
