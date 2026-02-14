@@ -389,6 +389,8 @@ fastify.post('/api/auth/signup', async (request, reply) => {
     currentStreak: 0,
     longestStreak: 0,
     disciplineScore: 50,
+    backgroundTokens: 10, // Free tokens for new users
+    country: 'Unknown', // Can be updated by user later
     createdAt: new Date().toISOString(),
     lastActive: new Date().toISOString()
   };
