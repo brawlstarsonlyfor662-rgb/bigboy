@@ -100,7 +100,11 @@ const AdminQuestManager = () => {
     if (!window.confirm('Are you sure? This will delete the quest for all users.')) return;
     
     try {
-      await axios.delete(`/api/admin/quests/global/${questId}`);
+      await axios.delete(`/api/admin/quests/global/${questId}`, {
+        headers: {
+          Authorization: `Bearer ${sessionStorage.getItem('admin_token') || localStorage.getItem('token')}`
+        }
+      });
       toast.success('Quest deleted successfully');
       fetchQuests();
       fetchStats();
