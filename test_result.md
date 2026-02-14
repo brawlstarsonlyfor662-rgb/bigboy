@@ -213,9 +213,8 @@
 ##
 ## test_plan:
 ##   current_focus:
-##     - "AdminQuestManager authentication fix"
-##   stuck_tasks:
-##     - "AdminQuestManager authentication fix"
+##     - "Deployment readiness hardening"
+##   stuck_tasks: []
 ##   test_all: false
 ##   test_priority: "high_first"
 ##
