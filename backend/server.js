@@ -1104,6 +1104,387 @@ fastify.get('/api/learning/youtube', { preHandler: [fastify.authenticate] }, asy
   return { videos, subject, topic };
 });
 
+// ==================== AI LIFE STRATEGIST MODE ====================
+
+// Get User Vision & Goals
+fastify.get('/api/strategist/vision', { preHandler: [fastify.authenticate] }, async (request) => {
+  const user = await getCurrentUser(request);
+  
+  const vision = await db.collection('user_vision').findOne({ userId: user.id });
+  
+  if (!vision) {
+    return { 
+      has_vision: false,
+      message: 'Define your 5-year vision to get started'
+    };
+  }
+  
+  return {
+    has_vision: true,
+    vision: vision.vision,
+    yearly_goals: vision.yearlyGoals || [],
+    monthly_goals: vision.monthlyGoals || [],
+    weekly_goals: vision.weeklyGoals || [],
+    created_at: vision.createdAt
+  };
+});
+
+// Save 5-Year Vision
+fastify.post('/api/strategist/vision', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+  const user = await getCurrentUser(request);
+  const { vision, yearly_goals } = request.body;
+  
+  if (!vision) {
+    return reply.status(400).send({ detail: 'Vision is required' });
+  }
+  
+  await db.collection('user_vision').updateOne(
+    { userId: user.id },
+    {
+      $set: {
+        vision,
+        yearlyGoals: yearly_goals || [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+    },
+    { upsert: true }
+  );
+  
+  return { success: true, message: 'Vision saved successfully' };
+});
+
+// Get AI Daily Priority
+fastify.get('/api/strategist/daily-priority', { preHandler: [fastify.authenticate] }, async (request) => {
+  const user = await getCurrentUser(request);
+  
+  try {
+    // Get user's vision and recent tasks
+    const vision = await db.collection('user_vision').findOne({ userId: user.id });
+    const recentTasks = await db.collection('tasks').find({ 
+      userId: user.id 
+    }).sort({ createdAt: -1 }).limit(10).toArray();
+    
+    const completedToday = await db.collection('tasks').countDocuments({
+      userId: user.id,
+      completed: true,
+      completedAt: { $gte: new Date().toISOString().split('T')[0] }
+    });
+    
+    // Use AI to generate priority
+    const { LlmChat, UserMessage } = await import('emergentintegrations/llm/chat');
+    
+    const prompt = `Based on this user's 5-year vision: "${vision?.vision || 'Building a successful future'}"
+Current level: ${user.level}
+Tasks completed today: ${completedToday}
+Recent tasks: ${recentTasks.map(t => t.title).join(', ')}
+
+Generate ONE specific, actionable priority task for today that moves them toward their vision.
+Format: Just the task title, nothing else. Keep it under 100 characters.`;
+
+    const chat = new LlmChat({
+      apiKey: process.env.EMERGENT_LLM_KEY,
+      sessionId: `daily_priority_${user.id}_${Date.now()}`
+    }).withModel('openai', 'gpt-5.2');
+    
+    const response = await chat.sendMessage(new UserMessage({ text: prompt }));
+    
+    return {
+      priority: response.trim(),
+      generated_at: new Date().toISOString()
+    };
+  } catch (error) {
+    console.error('AI priority generation failed:', error);
+    return {
+      priority: 'Focus on your most important long-term goal today',
+      generated_at: new Date().toISOString()
+    };
+  }
+});
+
+// Weekly Performance Analysis
+fastify.get('/api/strategist/weekly-analysis', { preHandler: [fastify.authenticate] }, async (request) => {
+  const user = await getCurrentUser(request);
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  
+  const weeklyTasks = await db.collection('tasks').find({
+    userId: user.id,
+    createdAt: { $gte: weekAgo }
+  }).toArray();
+  
+  const completed = weeklyTasks.filter(t => t.completed).length;
+  const total = weeklyTasks.length;
+  const completionRate = total > 0 ? ((completed / total) * 100).toFixed(1) : 0;
+  
+  // Focus sessions this week
+  const focusSessions = await db.collection('focus_sessions').countDocuments({
+    userId: user.id,
+    createdAt: { $gte: weekAgo }
+  });
+  
+  return {
+    completed_tasks: completed,
+    total_tasks: total,
+    completion_rate: parseFloat(completionRate),
+    focus_sessions: focusSessions,
+    current_streak: user.currentStreak,
+    xp_gained: Math.min(user.totalXp - 0, 1000), // Weekly XP (simplified)
+    procrastination_detected: completionRate < 50,
+    week_start: weekAgo
+  };
+});
+
+// ==================== IDENTITY TRANSFORMATION MODE ====================
+
+// Get Alter Ego Profile
+fastify.get('/api/identity/alter-ego', { preHandler: [fastify.authenticate] }, async (request) => {
+  const user = await getCurrentUser(request);
+  
+  const alterEgo = await db.collection('alter_ego').findOne({ userId: user.id });
+  
+  return {
+    has_alter_ego: !!alterEgo,
+    alter_ego: alterEgo || null
+  };
+});
+
+// Create/Update Alter Ego
+fastify.post('/api/identity/alter-ego', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+  const user = await getCurrentUser(request);
+  const { name, traits, values, daily_habits, decision_framework } = request.body;
+  
+  if (!name) {
+    return reply.status(400).send({ detail: 'Alter ego name is required' });
+  }
+  
+  await db.collection('alter_ego').updateOne(
+    { userId: user.id },
+    {
+      $set: {
+        name,
+        traits: traits || [],
+        values: values || [],
+        dailyHabits: daily_habits || [],
+        decisionFramework: decision_framework || '',
+        createdAt: new Date().toISOString()
+      }
+    },
+    { upsert: true }
+  );
+  
+  return { success: true, message: 'Alter ego profile saved' };
+});
+
+// Generate Decision Scenario
+fastify.get('/api/identity/decision-scenario', { preHandler: [fastify.authenticate] }, async (request) => {
+  const user = await getCurrentUser(request);
+  
+  try {
+    const { LlmChat, UserMessage } = await import('emergentintegrations/llm/chat');
+    
+    const prompt = `Generate a realistic decision scenario for personal development training.
+Scenario should test: strategic thinking, delayed gratification, or rational decision-making.
+Format as JSON:
+{
+  "scenario": "description of situation",
+  "option_a": "emotional/impulsive choice",
+  "option_b": "logical/strategic choice",
+  "correct": "a or b"
+}`;
+
+    const chat = new LlmChat({
+      apiKey: process.env.EMERGENT_LLM_KEY,
+      sessionId: `scenario_${user.id}_${Date.now()}`
+    }).withModel('openai', 'gpt-5.2');
+    
+    const response = await chat.sendMessage(new UserMessage({ text: prompt }));
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+    
+    throw new Error('Failed to parse scenario');
+  } catch (error) {
+    console.error('Scenario generation failed:', error);
+    return {
+      scenario: "You're offered a high-paying job that requires 70-hour weeks, potentially affecting your health and personal relationships.",
+      option_a: "Accept immediately for the money and status",
+      option_b: "Decline and continue building skills for better long-term opportunities",
+      correct: "b"
+    };
+  }
+});
+
+// ==================== WORLD IMPACT LAYER ====================
+
+// Get Impact Stats
+fastify.get('/api/impact/stats', { preHandler: [fastify.authenticate] }, async (request) => {
+  const user = await getCurrentUser(request);
+  
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  
+  const contributions = await db.collection('contributions').find({
+    userId: user.id,
+    createdAt: { $gte: weekAgo }
+  }).toArray();
+  
+  const totalContributions = await db.collection('contributions').countDocuments({ userId: user.id });
+  
+  return {
+    weekly_contributions: contributions.length,
+    total_contributions: totalContributions,
+    contribution_types: contributions.reduce((acc, c) => {
+      acc[c.type] = (acc[c.type] || 0) + 1;
+      return acc;
+    }, {}),
+    carbon_impact: contributions.reduce((sum, c) => sum + (c.carbonImpact || 0), 0),
+    contribution_streak: user.contributionStreak || 0
+  };
+});
+
+// Log Contribution
+fastify.post('/api/impact/contribution', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+  const user = await getCurrentUser(request);
+  const { type, description, hours, carbon_impact } = request.body;
+  
+  if (!type || !description) {
+    return reply.status(400).send({ detail: 'Type and description required' });
+  }
+  
+  await db.collection('contributions').insertOne({
+    id: uuidv4(),
+    userId: user.id,
+    type, // volunteer, build, teach, environmental, community
+    description,
+    hours: hours || 0,
+    carbonImpact: carbon_impact || 0,
+    createdAt: new Date().toISOString()
+  });
+  
+  // Award XP
+  const xpReward = 50;
+  await db.collection('users').updateOne(
+    { id: user.id },
+    { $inc: { totalXp: xpReward, xp: xpReward } }
+  );
+  
+  return { 
+    success: true, 
+    xp_gained: xpReward,
+    message: 'Contribution logged! +50 XP' 
+  };
+});
+
+// ==================== FOUNDER MODE ====================
+
+// Get Startup Ideas
+fastify.get('/api/founder/ideas', { preHandler: [fastify.authenticate] }, async (request) => {
+  const user = await getCurrentUser(request);
+  
+  const ideas = await db.collection('startup_ideas').find({ userId: user.id }).toArray();
+  
+  return { ideas: ideas.map(idea => ({
+    ...idea,
+    id: idea.id,
+    title: idea.title,
+    description: idea.description,
+    status: idea.status,
+    revenue_potential: idea.revenuePotential,
+    validation_score: idea.validationScore,
+    created_at: idea.createdAt
+  })) };
+});
+
+// Add Startup Idea
+fastify.post('/api/founder/ideas', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+  const user = await getCurrentUser(request);
+  const { title, description, target_market, revenue_model } = request.body;
+  
+  if (!title) {
+    return reply.status(400).send({ detail: 'Title is required' });
+  }
+  
+  const idea = {
+    id: uuidv4(),
+    userId: user.id,
+    title,
+    description: description || '',
+    targetMarket: target_market || '',
+    revenueModel: revenue_model || '',
+    status: 'idea', // idea, validating, building, launched
+    validationScore: 0,
+    revenuePotential: 0,
+    createdAt: new Date().toISOString()
+  };
+  
+  await db.collection('startup_ideas').insertOne(idea);
+  
+  return { success: true, idea };
+});
+
+// ==================== PSYCHOLOGICAL ANALYTICS ====================
+
+// Log Mood
+fastify.post('/api/psychology/mood', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+  const user = await getCurrentUser(request);
+  const { mood, energy, notes } = request.body;
+  
+  if (!mood) {
+    return reply.status(400).send({ detail: 'Mood is required' });
+  }
+  
+  await db.collection('mood_logs').insertOne({
+    id: uuidv4(),
+    userId: user.id,
+    mood, // 1-10 scale
+    energy, // 1-10 scale
+    notes: notes || '',
+    timestamp: new Date().toISOString()
+  });
+  
+  return { success: true, message: 'Mood logged' };
+});
+
+// Get Psychological Insights
+fastify.get('/api/psychology/insights', { preHandler: [fastify.authenticate] }, async (request) => {
+  const user = await getCurrentUser(request);
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  
+  const moodLogs = await db.collection('mood_logs').find({
+    userId: user.id,
+    timestamp: { $gte: weekAgo }
+  }).toArray();
+  
+  if (moodLogs.length === 0) {
+    return {
+      average_mood: 0,
+      average_energy: 0,
+      burnout_risk: false,
+      insights: ['Start tracking your mood to get insights']
+    };
+  }
+  
+  const avgMood = (moodLogs.reduce((sum, log) => sum + (log.mood || 5), 0) / moodLogs.length).toFixed(1);
+  const avgEnergy = (moodLogs.reduce((sum, log) => sum + (log.energy || 5), 0) / moodLogs.length).toFixed(1);
+  
+  const burnoutRisk = avgEnergy < 4 && avgMood < 5;
+  
+  const insights = [];
+  if (burnoutRisk) insights.push('⚠️ Burnout risk detected - consider taking a break');
+  if (avgMood < 5) insights.push('Your mood has been low this week - try outdoor activities');
+  if (avgEnergy < 5) insights.push('Energy levels are low - focus on sleep and nutrition');
+  if (avgMood >= 7 && avgEnergy >= 7) insights.push('✨ Great momentum! Keep up the positive habits');
+  
+  return {
+    average_mood: parseFloat(avgMood),
+    average_energy: parseFloat(avgEnergy),
+    burnout_risk: burnoutRisk,
+    mood_logs_count: moodLogs.length,
+    insights
+  };
+});
+
 // ==================== GLOBAL QUESTS ====================
 
 // Get Global Quests (available to all users)
