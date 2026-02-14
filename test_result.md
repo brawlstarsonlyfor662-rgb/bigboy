@@ -165,6 +165,18 @@
 ##         -agent: "testing"
 ##         -comment: "ALL 11 REQUESTED ROUTES TESTED AND WORKING PERFECTLY: /quests (Quest Hub with daily/weekly quests), /quests/daily (Daily Quests with progress tracking), /quests/weekly (Weekly Quests with warrior challenges), /leaderboard (Leaderboard with rankings), /admin/quests (Global Quest Manager for admins), /settings/background (Background Customizer with AI generation), /strategist (AI Life Strategist with 5-year vision planning), /identity (Identity Transformation with alter ego creation), /world-impact (World Impact contribution logging), /founder (Founder Mode interface), /psychology (Psychological Analytics with mood tracking and AI insights). All routes show unique content, proper headings, and full functionality. Screenshots captured for key routes."
 ##
+##   - task: "AdminQuestManager authentication fix"
+##     implemented: false
+##     working: false
+##     file: "/app/frontend/src/App.js"
+##     stuck_count: 1
+##     priority: "high"
+##     needs_retesting: true
+##     status_history:
+##         -working: false
+##         -agent: "testing"
+##         -comment: "CRITICAL AUTHENTICATION ISSUE: AdminQuestManager route (/admin/quests) is blocked by regular user authentication. Admin login works correctly via /system-control (stores admin_token in sessionStorage), but App.js route protection requires 'user' state from localStorage token. This causes redirect to landing page instead of loading AdminQuestManager. Backend API calls return 401 'Admin not found' errors. SOLUTION: Modify route protection in App.js to check for admin_token OR create separate admin authentication context."
+##
 ## metadata:
 ##   created_by: "main_agent"
 ##   version: "1.0"
