@@ -23,6 +23,7 @@ import WeeklyQuests from './pages/WeeklyQuests';
 import QuestsHub from './pages/QuestsHub';
 import Leaderboard from './pages/Leaderboard';
 import AdminQuestManager from './pages/AdminQuestManager';
+import BackgroundCustomizer from './pages/BackgroundCustomizer';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
