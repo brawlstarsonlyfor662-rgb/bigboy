@@ -33,21 +33,7 @@ import WorldImpact from './pages/WorldImpact';
 import FounderMode from './pages/FounderMode';
 import PsychologyDashboard from './pages/PsychologyDashboard';
 
-const envBackendUrl = process.env.REACT_APP_BACKEND_URL;
-
-// In deployed environments the build-time env may still point to a different domain (e.g. preview).
-// Prefer same-origin unless the env URL matches the current host.
-const BACKEND_URL = (() => {
-  if (!envBackendUrl) return window.location.origin;
-  try {
-    const envHost = new URL(envBackendUrl).host;
-    if (envHost && envHost === window.location.host) return envBackendUrl;
-    return window.location.origin;
-  } catch {
-    return window.location.origin;
-  }
-})();
-
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || window.location.origin;
 const API = `${BACKEND_URL}/api`;
 
 // Configure axios defaults
