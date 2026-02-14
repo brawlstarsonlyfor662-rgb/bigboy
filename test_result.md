@@ -221,6 +221,31 @@
 ## agent_communication:
 ##     -agent: "main"
 ##     -message: "Preview URL now returns 200 and landing page loads via screenshot tool. Please test backend auth + mode endpoints and frontend navigation/login + mode pages."
+
+## frontend:
+##   - task: "Music mini-player (YouTube embed presets)"
+##     implemented: false
+##     working: false
+##     file: "/app/frontend/src/components/MusicPlayer.js"
+##     stuck_count: 0
+##     priority: "high"
+##     needs_retesting: true
+##     status_history:
+##         -working: "NA"
+##         -agent: "main"
+##         -comment: "Planned: floating mini-player using YouTube embeds with category presets (Lo-fi, Ambient, Synthwave, Rain, White noise, Piano, Nature, Binaural focus), play/pause/next/prev + volume via IFrame API wrapper; persist state in localStorage; no autoplay."
+##
+##   - task: "Bottom-left profile + settings dock (after login)"
+##     implemented: false
+##     working: false
+##     file: "/app/frontend/src/components/BottomLeftDock.js"
+##     stuck_count: 0
+##     priority: "high"
+##     needs_retesting: true
+##     status_history:
+##         -working: "NA"
+##         -agent: "main"
+##         -comment: "Planned: bottom-left fixed dock showing username/level with buttons to /profile and /settings/background; only visible after login."
 ##     -agent: "testing"
 ##     -message: "BACKEND TESTING COMPLETE - ALL SYSTEMS OPERATIONAL: ✅ Created comprehensive test suite at /app/backend/tests/test_preview_backend_flows.py ✅ All authentication flows working (signup, login, /me endpoint) ✅ All 7 mode APIs fully functional and returning proper JSON ✅ Quest endpoints operational ✅ Error handling working correctly ✅ 16/16 tests passed (100% success rate). Backend is production-ready. Only remaining task is frontend testing which is outside my scope. Minor note: /healthz endpoint not routed through ingress but all /api/* endpoints work perfectly via external preview URL."
 ##     -agent: "testing"
