@@ -1263,9 +1263,10 @@ fastify.post('/api/quests/global/:questId/complete', { preHandler: [fastify.auth
 
 // ==================== LEADERBOARD ====================
 
-fastify.get('/api/leaderboard', { preHandler: [fastify.authenticate] }, async (request) => {
+// Global Leaderboard (all users worldwide)
+fastify.get('/api/leaderboard/global', { preHandler: [fastify.authenticate] }, async (request) => {
   const limit = parseInt(request.query.limit) || 100;
-  const timeframe = request.query.timeframe || 'all_time'; // all_time, weekly, monthly
+  const timeframe = request.query.timeframe || 'all_time';
   
   let query = {};
   
@@ -1286,14 +1287,14 @@ fastify.get('/api/leaderboard', { preHandler: [fastify.authenticate] }, async (r
       totalXp: 1, 
       currentStreak: 1, 
       disciplineScore: 1,
-      createdAt: 1
+      createdAt: 1,
+      country: 1
     }
   })
   .sort({ level: -1, totalXp: -1 })
   .limit(limit)
   .toArray();
   
-  // Get current user's rank
   const currentUser = await getCurrentUser(request);
   const usersAbove = await db.collection('users').countDocuments({
     $or: [
@@ -1307,7 +1308,6 @@ fastify.get('/api/leaderboard', { preHandler: [fastify.authenticate] }, async (r
   
   const userRank = usersAbove + 1;
   
-  // Add ranks to leaderboard
   const leaderboard = topUsers.map((user, index) => ({
     rank: index + 1,
     id: user.id,
@@ -1316,6 +1316,7 @@ fastify.get('/api/leaderboard', { preHandler: [fastify.authenticate] }, async (r
     total_xp: user.totalXp,
     current_streak: user.currentStreak,
     discipline_score: user.disciplineScore,
+    country: user.country || 'Unknown',
     created_at: user.createdAt,
     is_current_user: user.id === currentUser.id
   }));
@@ -1324,7 +1325,232 @@ fastify.get('/api/leaderboard', { preHandler: [fastify.authenticate] }, async (r
     leaderboard, 
     current_user_rank: userRank,
     total_users: await db.collection('users').countDocuments({}),
-    timeframe 
+    timeframe,
+    type: 'global'
+  };
+});
+
+// Local Leaderboard (users from same country/region)
+fastify.get('/api/leaderboard/local', { preHandler: [fastify.authenticate] }, async (request) => {
+  const currentUser = await getCurrentUser(request);
+  const userCountry = currentUser.country || 'Unknown';
+  const limit = parseInt(request.query.limit) || 100;
+  const timeframe = request.query.timeframe || 'all_time';
+  
+  let query = { country: userCountry };
+  
+  if (timeframe === 'weekly') {
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    query.lastActive = { $gte: weekAgo };
+  } else if (timeframe === 'monthly') {
+    const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    query.lastActive = { $gte: monthAgo };
+  }
+  
+  const topUsers = await db.collection('users').find(query, {
+    projection: { 
+      _id: 0, 
+      id: 1, 
+      username: 1, 
+      level: 1, 
+      totalXp: 1, 
+      currentStreak: 1, 
+      disciplineScore: 1,
+      createdAt: 1,
+      country: 1
+    }
+  })
+  .sort({ level: -1, totalXp: -1 })
+  .limit(limit)
+  .toArray();
+  
+  const usersAbove = await db.collection('users').countDocuments({
+    country: userCountry,
+    $or: [
+      { level: { $gt: currentUser.level } },
+      { 
+        level: currentUser.level, 
+        totalXp: { $gt: currentUser.totalXp } 
+      }
+    ]
+  });
+  
+  const userRank = usersAbove + 1;
+  
+  const leaderboard = topUsers.map((user, index) => ({
+    rank: index + 1,
+    id: user.id,
+    username: user.username,
+    level: user.level,
+    total_xp: user.totalXp,
+    current_streak: user.currentStreak,
+    discipline_score: user.disciplineScore,
+    country: user.country || 'Unknown',
+    created_at: user.createdAt,
+    is_current_user: user.id === currentUser.id
+  }));
+  
+  return { 
+    leaderboard, 
+    current_user_rank: userRank,
+    total_users: await db.collection('users').countDocuments({ country: userCountry }),
+    timeframe,
+    type: 'local',
+    country: userCountry
+  };
+});
+
+// ==================== BACKGROUND CUSTOMIZATION ====================
+
+// Get User Background Preferences
+fastify.get('/api/user/background', { preHandler: [fastify.authenticate] }, async (request) => {
+  const user = await getCurrentUser(request);
+  
+  const prefs = await db.collection('user_preferences').findOne({ userId: user.id });
+  
+  return {
+    background_url: prefs?.backgroundUrl || null,
+    background_type: prefs?.backgroundType || 'default', // default, url, ai-generated
+    tokens: user.backgroundTokens || 10, // Free tokens to start
+    ai_prompt: prefs?.aiPrompt || null
+  };
+});
+
+// Update Background (costs 1 token)
+fastify.post('/api/user/background/update', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+  const user = await getCurrentUser(request);
+  const { background_url, background_type } = request.body;
+  
+  if (!background_url || !background_type) {
+    return reply.status(400).send({ detail: 'Missing background_url or background_type' });
+  }
+  
+  // Check if user has tokens
+  const tokens = user.backgroundTokens || 0;
+  if (tokens < 1) {
+    return reply.status(400).send({ detail: 'Not enough tokens. You need 1 token to change background.' });
+  }
+  
+  // Deduct 1 token
+  await db.collection('users').updateOne(
+    { id: user.id },
+    { $set: { backgroundTokens: tokens - 1 } }
+  );
+  
+  // Update or create preferences
+  await db.collection('user_preferences').updateOne(
+    { userId: user.id },
+    { 
+      $set: { 
+        backgroundUrl: background_url,
+        backgroundType: background_type,
+        updatedAt: new Date().toISOString()
+      }
+    },
+    { upsert: true }
+  );
+  
+  return { 
+    success: true, 
+    message: 'Background updated successfully',
+    remaining_tokens: tokens - 1,
+    background_url
+  };
+});
+
+// Generate AI Background (costs 2 tokens)
+fastify.post('/api/user/background/generate', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+  const user = await getCurrentUser(request);
+  const { prompt } = request.body;
+  
+  if (!prompt) {
+    return reply.status(400).send({ detail: 'Missing prompt for AI generation' });
+  }
+  
+  // Check if user has tokens
+  const tokens = user.backgroundTokens || 0;
+  if (tokens < 2) {
+    return reply.status(400).send({ detail: 'Not enough tokens. You need 2 tokens to generate AI background.' });
+  }
+  
+  try {
+    // Use Emergent LLM key for image generation
+    const response = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.EMERGENT_LLM_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-image-1',
+        prompt: `Beautiful abstract background for productivity app: ${prompt}. Professional, modern, inspiring.`,
+        n: 1,
+        size: '1792x1024',
+        quality: 'standard'
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to generate image');
+    }
+    
+    const data = await response.json();
+    const imageUrl = data.data[0].url;
+    
+    // Deduct 2 tokens
+    await db.collection('users').updateOne(
+      { id: user.id },
+      { $set: { backgroundTokens: tokens - 2 } }
+    );
+    
+    // Save preferences
+    await db.collection('user_preferences').updateOne(
+      { userId: user.id },
+      { 
+        $set: { 
+          backgroundUrl: imageUrl,
+          backgroundType: 'ai-generated',
+          aiPrompt: prompt,
+          updatedAt: new Date().toISOString()
+        }
+      },
+      { upsert: true }
+    );
+    
+    return {
+      success: true,
+      image_url: imageUrl,
+      remaining_tokens: tokens - 2,
+      message: 'AI background generated successfully'
+    };
+  } catch (error) {
+    console.error('AI generation error:', error);
+    return reply.status(500).send({ detail: 'Failed to generate AI background' });
+  }
+});
+
+// Add Background Tokens (Admin or purchase)
+fastify.post('/api/user/background/add-tokens', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+  const user = await getCurrentUser(request);
+  const { amount } = request.body;
+  
+  if (!amount || amount < 1) {
+    return reply.status(400).send({ detail: 'Invalid token amount' });
+  }
+  
+  const currentTokens = user.backgroundTokens || 0;
+  const newTokens = currentTokens + amount;
+  
+  await db.collection('users').updateOne(
+    { id: user.id },
+    { $set: { backgroundTokens: newTokens } }
+  );
+  
+  return {
+    success: true,
+    tokens_added: amount,
+    new_total: newTokens,
+    message: `Added ${amount} background tokens`
   };
 });
 
