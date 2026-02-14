@@ -68,7 +68,11 @@ const AdminQuestManager = () => {
         });
         toast.success('Quest updated successfully!');
       } else {
-        await axios.post('/api/admin/quests/global', formData);
+        await axios.post('/api/admin/quests/global', formData, {
+          headers: {
+            Authorization: `Bearer ${sessionStorage.getItem('admin_token') || localStorage.getItem('token')}`
+          }
+        });
         toast.success('Global quest created! All users can now see it.');
       }
       
