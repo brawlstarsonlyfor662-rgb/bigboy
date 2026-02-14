@@ -123,6 +123,11 @@ function App() {
               <Route path="/leaderboard" element={user ? <Leaderboard /> : <Navigate to="/" />} />
               <Route path="/admin/quests" element={user ? <AdminQuestManager /> : <Navigate to="/" />} />
               <Route path="/settings/background" element={user ? <BackgroundCustomizer /> : <Navigate to="/" />} />
+              <Route path="/strategist" element={user ? <AIStrategist /> : <Navigate to="/" />} />
+              <Route path="/identity" element={user ? <IdentityTransform /> : <Navigate to="/" />} />
+              <Route path="/world-impact" element={user ? <WorldImpact /> : <Navigate to="/" />} />
+              <Route path="/founder" element={user ? <FounderMode /> : <Navigate to="/" />} />
+              <Route path="/psychology" element={user ? <PsychologyDashboard /> : <Navigate to="/" />} />
               {/* Hidden admin route */}
               <Route path="/system-control" element={<SystemControl />} />
             </Routes>
