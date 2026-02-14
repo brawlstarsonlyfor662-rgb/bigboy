@@ -845,15 +845,23 @@ fastify.get('/api/quests/daily', { preHandler: [fastify.authenticate] }, async (
     extraQuests = gradeData.extraDailyQuests;
   }
   
-  const questTemplates = [
-    { title: 'Complete 3 Study Tasks', xpReward: 50, target: 3, type: 'tasks' },
-    { title: 'Focus for 30 minutes', xpReward: 40, target: 30, type: 'focus' },
-    { title: 'Maintain your streak', xpReward: 30, target: 1, type: 'streak' },
-    { title: 'Level up one skill tree', xpReward: 60, target: 1, type: 'skill' },
-    { title: 'Complete AI Study session', xpReward: 50, target: 1, type: 'ai_study' }
-  ];
+  const tasksCompleted = await db.collection('tasks').countDocuments({ userId: user.id, completed: true });
+  const userContext = {
+    level: user.level,
+    streak: user.currentStreak,
+    disciplineScore: user.disciplineScore,
+    tasksCompleted
+  };
   
-  const totalQuests = Math.min(3 + extraQuests, questTemplates.length);
+  // Try AI generation first
+  let questTemplates = await generateAIQuests('daily', userContext);
+  
+  // Fallback to templates if AI fails
+  if (!questTemplates || questTemplates.length === 0) {
+    questTemplates = getDailyQuestTemplates(user.level);
+  }
+  
+  const totalQuests = Math.min(5 + extraQuests, questTemplates.length);
   const shuffled = questTemplates.sort(() => 0.5 - Math.random());
   const selected = shuffled.slice(0, totalQuests);
   
