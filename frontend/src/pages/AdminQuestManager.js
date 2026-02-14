@@ -29,9 +29,9 @@ const AdminQuestManager = () => {
 
   const fetchQuests = async () => {
     try {
-      const response = await axios.get('/api/admin/quests/global', {
+      const response = await axios.get('/admin/quests/global', {
         headers: {
-          Authorization: `Bearer ${sessionStorage.getItem('admin_token') || localStorage.getItem('token')}`
+          Authorization: `Bearer ${sessionStorage.getItem('admin_token') || ''}`
         }
       });
       setQuests(response.data.quests || []);
@@ -45,9 +45,9 @@ const AdminQuestManager = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await axios.get('/api/admin/quests/stats', {
+      const response = await axios.get('/admin/quests/stats', {
         headers: {
-          Authorization: `Bearer ${sessionStorage.getItem('admin_token') || localStorage.getItem('token')}`
+          Authorization: `Bearer ${sessionStorage.getItem('admin_token') || ''}`
         }
       });
       setStats(response.data);
@@ -61,16 +61,16 @@ const AdminQuestManager = () => {
     
     try {
       if (editingQuest) {
-        await axios.put(`/api/admin/quests/global/${editingQuest.id}`, formData, {
+        await axios.put(`/admin/quests/global/${editingQuest.id}`, formData, {
           headers: {
-            Authorization: `Bearer ${sessionStorage.getItem('admin_token') || localStorage.getItem('token')}`
+            Authorization: `Bearer ${sessionStorage.getItem('admin_token') || ''}`
           }
         });
         toast.success('Quest updated successfully!');
       } else {
-        await axios.post('/api/admin/quests/global', formData, {
+        await axios.post('/admin/quests/global', formData, {
           headers: {
-            Authorization: `Bearer ${sessionStorage.getItem('admin_token') || localStorage.getItem('token')}`
+            Authorization: `Bearer ${sessionStorage.getItem('admin_token') || ''}`
           }
         });
         toast.success('Global quest created! All users can now see it.');
@@ -100,9 +100,9 @@ const AdminQuestManager = () => {
     if (!window.confirm('Are you sure? This will delete the quest for all users.')) return;
     
     try {
-      await axios.delete(`/api/admin/quests/global/${questId}`, {
+      await axios.delete(`/admin/quests/global/${questId}`, {
         headers: {
-          Authorization: `Bearer ${sessionStorage.getItem('admin_token') || localStorage.getItem('token')}`
+          Authorization: `Bearer ${sessionStorage.getItem('admin_token') || ''}`
         }
       });
       toast.success('Quest deleted successfully');
