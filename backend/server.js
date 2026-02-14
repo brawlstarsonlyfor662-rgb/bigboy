@@ -2274,16 +2274,24 @@ fastify.setNotFoundHandler((request, reply) => {
 
 // Initialize super admin if not exists
 const initSuperAdmin = async () => {
-  const existing = await db.collection('admins').findOne({ username: 'Rebadion' });
+  const adminUsername = process.env.ADMIN_USERNAME || 'Rebadion';
+  const adminPassword = process.env.ADMIN_PASSWORD;
+
+  const existing = await db.collection('admins').findOne({ username: adminUsername });
   if (!existing) {
+    if (!adminPassword) {
+      console.warn('ADMIN_PASSWORD is not set; skipping super admin creation');
+      return;
+    }
+
     await db.collection('admins').insertOne({
       id: uuidv4(),
-      username: 'Rebadion',
-      hashedPassword: await hashPassword('Rebadion2010'),
+      username: adminUsername,
+      hashedPassword: await hashPassword(adminPassword),
       isSuperAdmin: true,
       createdAt: new Date().toISOString()
     });
-    console.log('Super admin created: Rebadion');
+    console.log(`Super admin created: ${adminUsername}`);
   }
 };
 
