@@ -362,6 +362,11 @@ fastify.get('/healthz', async () => {
   return { status: 'ok' };
 });
 
+// Alias health check under /api for ingress setups that only route /api
+fastify.get('/api/healthz', async () => {
+  return { status: 'ok' };
+});
+
 // Public Stats
 fastify.get('/api/public/stats', async () => {
   const totalUsers = await db.collection('users').countDocuments({});
