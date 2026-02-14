@@ -204,6 +204,8 @@ const QuestsHub = () => {
       case 'weekly': return { quests: weeklyQuests, type: 'weekly' };
       case 'monthly': return { quests: monthlyQuests, type: 'monthly' };
       case 'micro': return { quests: microQuests, type: 'micro' };
+      case 'global': return { quests: globalQuests, type: 'global' };
+      case 'beginner': return { quests: beginnerQuests, type: 'beginner' };
       default: return { quests: dailyQuests, type: 'daily' };
     }
   };
