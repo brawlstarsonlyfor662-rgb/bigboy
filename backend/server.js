@@ -1047,7 +1047,14 @@ fastify.post('/api/quests/:questId/complete', { preHandler: [fastify.authenticat
   const { questId } = request.params;
   const questType = request.query.quest_type || 'daily';
   
-  const collection = questType === 'daily' ? 'daily_quests' : 'weekly_quests';
+  const collectionMap = {
+    'daily': 'daily_quests',
+    'weekly': 'weekly_quests',
+    'monthly': 'monthly_quests',
+    'micro': 'micro_quests'
+  };
+  
+  const collection = collectionMap[questType] || 'daily_quests';
   const quest = await db.collection(collection).findOne({ id: questId, userId: user.id });
   
   if (!quest) return reply.status(404).send({ detail: 'Quest not found' });
@@ -1055,7 +1062,7 @@ fastify.post('/api/quests/:questId/complete', { preHandler: [fastify.authenticat
   
   await db.collection(collection).updateOne(
     { id: questId },
-    { $set: { completed: true, progress: quest.target } }
+    { $set: { completed: true, progress: quest.target, completedAt: new Date().toISOString() } }
   );
   
   const newTotalXp = user.totalXp + quest.xpReward;
@@ -1066,7 +1073,7 @@ fastify.post('/api/quests/:questId/complete', { preHandler: [fastify.authenticat
     { $set: { totalXp: newTotalXp, xp: newTotalXp % xpForNextLevel(newLevel), level: newLevel } }
   );
   
-  return { success: true, xp_gained: quest.xpReward, level_up: newLevel > user.level, new_level: newLevel };
+  return { success: true, xp_gained: quest.xpReward, level_up: newLevel > user.level, new_level: newLevel, quest_type: questType };
 });
 
 // YouTube Learning (mocked)
