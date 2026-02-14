@@ -2295,7 +2295,7 @@ const initSuperAdmin = async () => {
   }
 };
 
-// Start server
+// Start server (only when running as a standalone server, not when imported for serverless)
 const start = async () => {
   try {
     await connectDB();
@@ -2309,4 +2309,10 @@ const start = async () => {
   }
 };
 
-start();
+// If running on Vercel/serverless, this module will be imported.
+// Only start listening when executed directly.
+if (process.argv[1] && process.argv[1].endsWith('server.js')) {
+  start();
+}
+
+export default fastify;
