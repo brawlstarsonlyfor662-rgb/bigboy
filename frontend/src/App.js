@@ -33,7 +33,7 @@ import WorldImpact from './pages/WorldImpact';
 import FounderMode from './pages/FounderMode';
 import PsychologyDashboard from './pages/PsychologyDashboard';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || window.location.origin;
 const API = `${BACKEND_URL}/api`;
 
 // Configure axios defaults
