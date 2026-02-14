@@ -134,6 +134,18 @@
 ##         -agent: "testing"
 ##         -comment: "ALL MODE ENDPOINTS TESTED AND WORKING: ✅ Strategist (vision GET/POST, daily-priority GET), ✅ Identity (alter-ego GET/POST), ✅ Impact (stats GET, contribution POST), ✅ Founder (ideas GET/POST), ✅ Psychology (mood POST, insights GET), ✅ Quests (daily/weekly GET). All endpoints return proper JSON responses with 200 status codes. Authentication required and working correctly."
 ##
+
+##   - task: "Add /api/healthz alias + add pagination/limits to heavy endpoints"
+##     implemented: true
+##     working: true
+##     file: "/app/backend/server.js"
+##     stuck_count: 0
+##     priority: "high"
+##     needs_retesting: false
+##     status_history:
+##         -working: true
+##         -agent: "main"
+##         -comment: "Added GET /api/healthz alias; added limit/skip to /api/tasks; constrained /api/analytics/dashboard by days window + limits. Restarted backend; verified with curl and backend testing agent."
 ## frontend:
 ##   - task: "Unblock preview URL (serve frontend)"
 ##     implemented: true
