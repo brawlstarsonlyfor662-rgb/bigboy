@@ -2265,8 +2265,9 @@ const start = async () => {
   try {
     await connectDB();
     await initSuperAdmin();
-    await fastify.listen({ port: 8009, host: '0.0.0.0' });
-    console.log('Server running on http://0.0.0.0:8009');
+    const port = parseInt(process.env.PORT || '8001', 10);
+    await fastify.listen({ port, host: '0.0.0.0' });
+    console.log(`Server running on http://0.0.0.0:${port}`);
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);
