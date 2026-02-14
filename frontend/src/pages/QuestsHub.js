@@ -14,6 +14,8 @@ const QuestsHub = () => {
   const [weeklyQuests, setWeeklyQuests] = useState([]);
   const [monthlyQuests, setMonthlyQuests] = useState([]);
   const [microQuests, setMicroQuests] = useState([]);
+  const [globalQuests, setGlobalQuests] = useState([]);
+  const [beginnerQuests, setBeginnerQuests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('daily');
   const [completing, setCompleting] = useState(null);
