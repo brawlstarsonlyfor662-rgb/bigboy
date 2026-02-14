@@ -1010,6 +1010,18 @@ fastify.get('/api/system/analytics/export', { preHandler: [fastify.authenticate]
   return { csv };
 });
 
+// SPA Catch-all route - MUST be last to serve index.html for all non-API routes
+fastify.setNotFoundHandler((request, reply) => {
+  // If request is for API endpoint, return 404
+  if (request.url.startsWith('/api')) {
+    reply.status(404).send({ detail: 'Not Found' });
+    return;
+  }
+  
+  // For all other routes, serve index.html to support SPA routing
+  reply.sendFile('index.html');
+});
+
 // Initialize super admin if not exists
 const initSuperAdmin = async () => {
   const existing = await db.collection('admins').findOne({ username: 'Rebadion' });
