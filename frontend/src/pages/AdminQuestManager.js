@@ -53,7 +53,7 @@ const AdminQuestManager = () => {
     
     try {
       if (editingQuest) {
-        await axios.put(`/admin/quests/global/${editingQuest.id}`, formData);
+        await axios.put(`/api/admin/quests/global/${editingQuest.id}`, formData);
         toast.success('Quest updated successfully!');
       } else {
         await axios.post('/admin/quests/global', formData);
